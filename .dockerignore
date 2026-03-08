@@ -1,0 +1,32 @@
+# Secrets — mounted as volumes at runtime, never baked into the image
+config.json
+.env
+.env.*
+
+# Data — mounted as a volume at runtime
+data/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Git
+.git/
+.gitignore
