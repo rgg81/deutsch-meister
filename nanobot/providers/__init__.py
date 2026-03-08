@@ -1,1 +1,0 @@
-# NanoBot provider adapters
