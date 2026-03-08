@@ -14,4 +14,4 @@ RUN mkdir -p /app/data
 
 ENV PYTHONUNBUFFERED=1
 
-CMD ["python", "-m", "nanobot.channels.telegram"]
+CMD ["nanobot", "gateway", "--config", "/app/config.json"]

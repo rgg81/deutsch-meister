@@ -49,3 +49,6 @@ htmlcov/
 
 # Docker
 .docker/
+
+# NanoBot config (contains secrets)
+config.json
