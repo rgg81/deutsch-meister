@@ -1,0 +1,26 @@
+{
+  "providers": {
+    "github_copilot": {}
+  },
+  "agents": {
+    "defaults": {
+      "model": "github_copilot/gpt-4o",
+      "provider": "github_copilot",
+      "workspace": "/app/workspace"
+    }
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "token": "YOUR_BOT_TOKEN",
+      "allowFrom": ["YOUR_TELEGRAM_USER_ID"]
+    }
+  },
+  "tools": {
+    "web": {
+      "search": {
+        "apiKey": "YOUR_BRAVE_SEARCH_API_KEY"
+      }
+    }
+  }
+}

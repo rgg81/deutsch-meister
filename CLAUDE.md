@@ -3,13 +3,13 @@
 ## Project Overview
 
 A personal German language tutor built on NanoBot (Python agent framework),
-delivered via Telegram, powered by Claude API.
+delivered via Telegram, powered by GitHub Copilot (OAuth, no API key required).
 
 ## Tech Stack
 
 - Python 3.11+, NanoBot framework (forked)
 - python-telegram-bot (via NanoBot's channel adapter)
-- Anthropic Claude API (via NanoBot's provider system)
+- GitHub Copilot (via NanoBot's OAuth provider — uses Copilot subscription)
 - SQLite for vocabulary SRS and progress tracking
 - APScheduler / NanoBot cron for daily lesson scheduling
 - Static HTML/CSS/JS for the landing page (website/ directory)
@@ -41,3 +41,4 @@ delivered via Telegram, powered by Claude API.
 - SQLite over markdown files for vocabulary/progress (queryable, supports SRS interval calculations efficiently)
 - NanoBot's SKILL.md for teaching persona and lesson flow
 - Custom Python modules for algorithmic logic (SRS, curriculum state)
+- GitHub Copilot over Anthropic API — uses existing Copilot subscription via OAuth, no separate API key needed

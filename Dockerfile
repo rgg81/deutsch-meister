@@ -10,8 +10,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Create data directory for SQLite
-RUN mkdir -p /app/data
+RUN mkdir -p /app/data /app/workspace
 
 ENV PYTHONUNBUFFERED=1
 
-CMD ["python", "-m", "nanobot.channels.telegram"]
+CMD ["python", "-m", "nanobot", "gateway", "--config", "/app/config.json"]
