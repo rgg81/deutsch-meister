@@ -53,22 +53,7 @@ deutsch-meister/
 2. Send `/start` — it will reply with your numeric user ID (e.g. `123456789`)
 3. Add this ID to the `allowFrom` field in your config to restrict access to yourself only
 
-### 3. Authenticate with GitHub Copilot (OAuth)
-
-DeutschMeister uses your GitHub Copilot subscription for AI — **no API key needed**.
-
-NanoBot handles the OAuth flow automatically on first run:
-
-```bash
-# Run the agent — it will prompt you to authenticate via browser if needed
-python -m nanobot agent -m "Hallo!"
-```
-
-You will be shown a URL to open in your browser and a code to enter. After authenticating once, the token is cached locally.
-
-> **Requirements**: You need an active [GitHub Copilot subscription](https://github.com/features/copilot) (Individual, Business, or Enterprise).
-
-### 4. Configure the Bot
+### 3. Configure the Bot
 
 ```bash
 cp config.example.json config.json
@@ -85,7 +70,7 @@ Edit `config.json` and fill in your values:
     "defaults": {
       "model": "github_copilot/gpt-4o",
       "provider": "github_copilot",
-      "workspace": "/app/workspace"
+      "workspace": "./workspace"
     }
   },
   "channels": {
@@ -99,6 +84,21 @@ Edit `config.json` and fill in your values:
 ```
 
 > **Optional**: Add a `tools.web.search.apiKey` with a [Brave Search API key](https://brave.com/search/api/) to enable web search during lessons.
+
+### 4. Authenticate with GitHub Copilot (OAuth)
+
+DeutschMeister uses your GitHub Copilot subscription for AI — **no API key needed**.
+
+NanoBot handles the OAuth flow automatically on first run:
+
+```bash
+# Run the agent — it will prompt you to authenticate via browser if needed
+python -m nanobot agent -m "Hallo!"
+```
+
+You will be shown a URL to open in your browser and a code to enter. After authenticating once, the token is cached locally under `~/.config/litellm/`.
+
+> **Requirements**: You need an active [GitHub Copilot subscription](https://github.com/features/copilot) (Individual, Business, or Enterprise).
 
 ### 5. Run the Agent
 
@@ -118,7 +118,15 @@ docker-compose up -d
 
 The Docker setup mounts `config.json` and the `workspace/` directory into the container.
 
-> **Note on GitHub Copilot auth in Docker**: Run `python -m nanobot agent -m "test"` locally first to complete the OAuth flow and cache the token, then mount the token cache into the container.
+> **Note on GitHub Copilot auth in Docker**: Run `python -m nanobot agent -m "test"` locally first to complete the OAuth flow. This caches your token under `~/.config/litellm/` on your host machine. Then mount it into the container by adding this volume to `docker-compose.yml`:
+>
+> ```yaml
+> volumes:
+>   - ./config.json:/app/config.json:ro
+>   - ./workspace:/app/workspace
+>   - ./data:/app/data
+>   - ~/.config/litellm:/root/.config/litellm:ro
+> ```
 
 ## Development
 

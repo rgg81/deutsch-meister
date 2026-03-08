@@ -6,7 +6,7 @@
     "defaults": {
       "model": "github_copilot/gpt-4o",
       "provider": "github_copilot",
-      "workspace": "/app/workspace"
+      "workspace": "./workspace"
     }
   },
   "channels": {

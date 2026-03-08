@@ -4,6 +4,9 @@ services:
   bot:
     build: .
     restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
     volumes:
       - ./config.json:/app/config.json:ro
       - ./workspace:/app/workspace:ro

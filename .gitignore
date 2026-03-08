@@ -47,5 +47,8 @@ htmlcov/
 # Jupyter
 .ipynb_checkpoints/
 
+# Config (contains secrets — copy from config.example.json)
+config.json
+
 # Docker
 .docker/
