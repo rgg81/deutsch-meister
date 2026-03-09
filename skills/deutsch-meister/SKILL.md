@@ -85,7 +85,7 @@ Send 2–4 hours after Block 2 (or at end of lesson session):
 
 ## Proactive Web Resources
 
-Whenever you deliver lesson content, automatically enrich it with relevant resources found via `web_search`. Do not wait for the user to ask — include resources as a natural part of each lesson block.
+Whenever you deliver a **Block 2 core lesson** or the **word of the day**, automatically enrich it with relevant resources found via `web_search`. Do not wait for the user to ask — include resources as a natural part of those lesson blocks.
 
 ### When to search
 
@@ -104,10 +104,10 @@ Whenever you deliver lesson content, automatically enrich it with relevant resou
 
 - Always search **before** sending the lesson message so links are included in the same response.
 - Include 1–3 resources maximum — quality over quantity.
-- Present them at the end of the lesson block under a short heading like **"📚 Further reading"** or **"🎥 Watch & listen"**.
+- Present them at the end of the lesson block under a short heading like **"Further reading"** or **"Watch & listen"**. Optionally include a single emoji in the heading (this should be the only emoji in the message), e.g. **"📚 Further reading"**.
 - Format as a brief labelled list, e.g.:
-  - 📹 [Easy German – Ordering Food](https://youtube.com/...) — real street interviews, subtitled
-  - 📖 [DW Learn German A1](https://learngerman.dw.com/...) — free interactive course
+  - Video: [Easy German – Ordering Food](https://youtube.com/...) — real street interviews, subtitled
+  - Course: [DW Learn German A1](https://learngerman.dw.com/...) — free interactive course
 - Prefer: YouTube (Easy German, Deutsch für Euch, DW), reputable language blogs (Babbel, FluentU, Lingoda), and official resources (Goethe-Institut, DW).
 - If `web_search` returns no useful results or the tool is unavailable, skip the section silently — do not mention the failure to the user.
 
