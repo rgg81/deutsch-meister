@@ -413,23 +413,31 @@ class TelegramChannel(BaseChannel):
         await self._send_text(chat_id, text, reply_params, thread_kwargs)
 
     async def _on_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Handle /start command."""
+        """Handle /start command — publicly accessible, bypasses ACL to trigger onboarding."""
         if not update.message or not update.effective_user:
             return
-
+        message = update.message
         user = update.effective_user
-        await update.message.reply_text(
-            f"👋 Hi {user.first_name}! I'm nanobot.\n\n"
-            "Send me a message and I'll respond!\n"
-            "Type /help to see available commands."
-        )
+        chat_id = str(message.chat_id)
+        self._remember_thread_context(message)
+        self._start_typing(chat_id)
+        # Publish directly to bypass ACL so /start always triggers onboarding for new users
+        from nanobot.bus.events import InboundMessage
+        await self.bus.publish_inbound(InboundMessage(
+            channel=self.name,
+            sender_id=self._sender_id(user),
+            chat_id=chat_id,
+            content=message.text,
+            metadata=self._build_message_metadata(message, user),
+            session_key_override=self._derive_topic_session_key(message),
+        ))
 
     async def _on_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /help command, bypassing ACL so all users can access it."""
         if not update.message:
             return
         await update.message.reply_text(
-            "🐈 nanobot commands:\n"
+            "🇩🇪 DeutschMeister commands:\n"
             "/new — Start a new conversation\n"
             "/stop — Stop the current task\n"
             "/help — Show available commands"

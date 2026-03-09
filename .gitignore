@@ -52,3 +52,15 @@ config.json
 
 # Docker
 .docker/
+
+# Runtime data (nanobot-generated)
+cron/
+media/
+workspace/sessions/
+workspace/memory/
+workspace/AGENTS.md
+workspace/TOOLS.md
+workspace/USER.md
+
+# Tool version managers
+.tool-versions
