@@ -417,19 +417,14 @@ class TelegramChannel(BaseChannel):
         if not update.message or not update.effective_user:
             return
 
-        user = update.effective_user
-        await update.message.reply_text(
-            f"👋 Hi {user.first_name}! I'm nanobot.\n\n"
-            "Send me a message and I'll respond!\n"
-            "Type /help to see available commands."
-        )
+        await self._forward_command(update, context)
 
     async def _on_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /help command, bypassing ACL so all users can access it."""
         if not update.message:
             return
         await update.message.reply_text(
-            "🐈 nanobot commands:\n"
+            "🇩🇪 DeutschMeister commands:\n"
             "/new — Start a new conversation\n"
             "/stop — Stop the current task\n"
             "/help — Show available commands"

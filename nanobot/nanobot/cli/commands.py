@@ -116,7 +116,7 @@ def _print_agent_response(response: str, render_markdown: bool) -> None:
     content = response or ""
     body = Markdown(content) if render_markdown else Text(content)
     console.print()
-    console.print(f"[cyan]{__logo__} nanobot[/cyan]")
+    console.print(f"[cyan]🇩🇪 DeutschMeister[/cyan]")
     console.print(body)
     console.print()
 
@@ -311,7 +311,7 @@ def gateway(
 
     config = _load_runtime_config(config, workspace)
 
-    console.print(f"{__logo__} Starting nanobot gateway on port {port}...")
+    console.print(f"🇩🇪 Starting DeutschMeister gateway on port {port}...")
     sync_workspace_templates(config.workspace_path)
     bus = MessageBus()
     provider = _make_provider(config)
