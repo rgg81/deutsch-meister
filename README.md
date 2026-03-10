@@ -90,7 +90,7 @@ Edit `config.json` and fill in your values:
   "stt": {
     "provider": "groq",
     "groq": {
-      "api_key": "YOUR_GROQ_API_KEY"
+      "apiKey": "YOUR_GROQ_API_KEY"
     }
   }
 }
@@ -98,7 +98,7 @@ Edit `config.json` and fill in your values:
 
 > **Optional**: Add a `tools.web.search.apiKey` with a [Brave Search API key](https://brave.com/search/api/) to enable web search during lessons.
 
-> **Optional**: Add an `stt.groq.api_key` (or set the `GROQ_API_KEY` environment variable) to enable voice message transcription via [Groq](https://console.groq.com/).
+> **Optional**: Add an `stt.groq.apiKey` (or set the `GROQ_API_KEY` environment variable) to enable voice message transcription via [Groq](https://console.groq.com/).
 
 ### 4. Authenticate with GitHub Copilot (OAuth)
 

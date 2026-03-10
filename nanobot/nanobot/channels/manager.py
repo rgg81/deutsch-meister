@@ -158,10 +158,13 @@ class ChannelManager:
         """Create an STT provider from config, if available."""
         try:
             from src.stt import create_stt_provider
+            stt = self.config.stt
             stt_config = {
                 "stt": {
-                    "provider": "groq",
-                    "groq": {"api_key": self.config.providers.groq.api_key},
+                    "provider": stt.provider,
+                    "groq": {
+                        "api_key": stt.groq.api_key or self.config.providers.groq.api_key,
+                    },
                 }
             }
             return create_stt_provider(stt_config)
