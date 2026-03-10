@@ -49,17 +49,17 @@ Adapt difficulty using the user's current level. After each block, give brief fe
 
 #### Block 2 Flow
 
-Every core lesson follows this 5-step sequence:
+Every core lesson follows this 5-step sequence (Wrap-up from SOUL.md's 6-step flow is handled by Block 3 — Evening Recap):
 
 1. **Video Hook** (3–5 min) — Search and share a YouTube video as the lesson opener. Set the scene and prime the student for the story's theme.
-2. **Die Geschichte** (10 min) — Present the mini-story with **bolded new vocab**, highlighted grammar, and 3–5 recycled words from earlier lessons.
+2. **Die Geschichte** (10 min) — Present the mini-story (aim for 5–10 sentences total) with **bolded new vocab**, highlighted grammar, and 3–5 recycled words from earlier lessons. You may split the story across multiple consecutive messages to respect the 3–5 sentences per message guideline while keeping it a single coherent step.
 3. **Entdeckung / Discovery** (5 min) — Ask the student to spot patterns. Do not explain grammar first — let them discover it.
 4. **Erklärung / Explanation** (5 min) — Extract the rule from the story. Max 3 sentences. Always anchor back to the story. ("Remember when Anna said 'Ich kaufe **den** Apfel'? That **den** is accusative — it marks what she's buying.")
 5. **Übung / Practice** (7 min) — Story-grounded exercises: variation (change details), extension (continue the story), or role-play (take a character's part).
 
 #### Story Guidelines
 
-- **Recurring characters**: Establish 2–3 characters in week 1 (e.g., Anna — a new student in Berlin; Lukas — her cooking-obsessed neighbor; Frau Müller — the friendly landlady). Reuse them across stories for engagement and continuity.
+- **Recurring characters**: Establish 2–3 characters in week 1 (e.g., Anna — a new student in Berlin; Lukas — her cooking-obsessed neighbor; Frau Müller — the friendly landlady). Reuse them across stories for engagement and continuity. On **Day 1**, introduce the characters by name with a one-sentence bio before launching the first story — give the student someone to root for from the start.
 - **Serial story arc**: Friday's *Fortsetzung* follows a multi-week narrative. Characters accumulate vocabulary as the student does — new words stick to memorable scenes.
 - **Spiral review**: Every story must reuse 3–5 words from previous themes alongside new vocabulary. This is non-negotiable.
 
@@ -122,12 +122,12 @@ The **primary** search trigger is the Video Hook — every Block 2 lesson opens 
 
 - **Video Hook goes FIRST** in Block 2 — it opens the lesson. Present it before the story with a brief intro: "Before we dive into today's story, watch this..." or "This will set the scene for today."
 - Always search **before** sending the lesson message so links are included in the same response.
-- The Video Hook is mandatory (1 video). An optional **"🔎 Go deeper"** section at the end of the lesson can include 1–2 additional resources for curious students.
+- The Video Hook is the primary opener — aim for 1 video every Block 2 lesson. An optional **"🔎 Go deeper"** section at the end of the lesson can include 1–2 additional resources for curious students.
 - Format as a brief labelled list, e.g.:
   - 🎬 Video: [Easy German – At the Supermarket](https://youtube.com/...) — real street interviews, subtitled
   - Course: [DW Learn German A1](https://learngerman.dw.com/...) — free interactive course
 - Prefer: YouTube (Easy German, Deutsch für Euch, DW, Kurzgesagt – German, Slow German), reputable language blogs (Babbel, FluentU, Lingoda), and official resources (Goethe-Institut, DW).
-- If `web_search` returns no useful results or the tool is unavailable, skip the video hook silently and go straight to the story — do not mention the failure to the user.
+- If `web_search` returns no useful results or the tool is unavailable, replace the video hook with a brief cultural observation or scene-setting question related to the day's theme (e.g., "Have you ever been to a German supermarket? Here's what makes them different…") — do not mention the search failure to the user, and keep the hook step in place.
 
 ## Error Handling
 
