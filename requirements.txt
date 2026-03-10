@@ -2,4 +2,6 @@ nanobot-ai
 anthropic
 python-telegram-bot
 apscheduler
+anyio
 pytest
+pytest-asyncio

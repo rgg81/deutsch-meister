@@ -18,6 +18,13 @@ DeutschMeister is a conversational German tutor that:
 - **Storage**: SQLite (vocabulary SRS, progress tracking)
 - **Scheduler**: APScheduler (daily lesson reminders)
 
+### Audio Features
+
+- **Speech-to-Text**: Pluggable STT abstraction (`src/stt/`) with a Groq Whisper Large v3 implementation
+- Send voice messages to the bot and they are automatically transcribed before being processed by the tutor
+- STT provider is configured via `config.json` under the `"stt"` key (see Setup)
+- The `GROQ_API_KEY` environment variable can be used as an alternative to setting the key in `config.json`
+
 ## Project Structure
 
 ```
@@ -79,11 +86,19 @@ Edit `config.json` and fill in your values:
       "token": "YOUR_BOT_TOKEN",
       "allowFrom": ["YOUR_TELEGRAM_USER_ID"]
     }
+  },
+  "stt": {
+    "provider": "groq",
+    "groq": {
+      "apiKey": "YOUR_GROQ_API_KEY"
+    }
   }
 }
 ```
 
 > **Optional**: Add a `tools.web.search.apiKey` with a [Brave Search API key](https://brave.com/search/api/) to enable web search during lessons.
+
+> **Optional**: Add an `stt.groq.apiKey` (or set the `GROQ_API_KEY` environment variable) to enable voice message transcription via [Groq](https://console.groq.com/).
 
 ### 4. Authenticate with GitHub Copilot (OAuth)
 

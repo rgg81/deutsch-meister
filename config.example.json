@@ -22,5 +22,11 @@
         "apiKey": "YOUR_BRAVE_SEARCH_API_KEY"
       }
     }
+  },
+  "stt": {
+    "provider": "groq",
+    "groq": {
+      "apiKey": "YOUR_GROQ_API_KEY"
+    }
   }
 }
