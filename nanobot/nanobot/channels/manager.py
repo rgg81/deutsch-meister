@@ -38,10 +38,12 @@ class ChannelManager:
         if self.config.channels.telegram.enabled:
             try:
                 from nanobot.channels.telegram import TelegramChannel
+                stt_provider = self._create_stt_provider()
                 self.channels["telegram"] = TelegramChannel(
                     self.config.channels.telegram,
                     self.bus,
                     groq_api_key=self.config.providers.groq.api_key,
+                    stt_provider=stt_provider,
                 )
                 logger.info("Telegram channel enabled")
             except ImportError as e:
@@ -151,6 +153,21 @@ class ChannelManager:
                 logger.warning("Matrix channel not available: {}", e)
 
         self._validate_allow_from()
+
+    def _create_stt_provider(self):
+        """Create an STT provider from config, if available."""
+        try:
+            from src.stt import create_stt_provider
+            stt_config = {
+                "stt": {
+                    "provider": "groq",
+                    "groq": {"api_key": self.config.providers.groq.api_key},
+                }
+            }
+            return create_stt_provider(stt_config)
+        except Exception as e:
+            logger.debug("STT provider not available: {}", e)
+            return None
 
     def _validate_allow_from(self) -> None:
         for name, ch in self.channels.items():
