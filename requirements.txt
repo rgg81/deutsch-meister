@@ -5,3 +5,4 @@ apscheduler
 anyio
 pytest
 pytest-asyncio
+faster-whisper

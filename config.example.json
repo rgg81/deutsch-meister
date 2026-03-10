@@ -24,9 +24,12 @@
     }
   },
   "stt": {
-    "provider": "groq",
+    "provider": "groq_with_fallback",
     "groq": {
-      "apiKey": "YOUR_GROQ_API_KEY"
+      "api_key": "YOUR_GROQ_API_KEY"
+    },
+    "whisper": {
+      "model": "base"
     }
   }
 }
