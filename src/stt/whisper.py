@@ -1,5 +1,6 @@
 """Local Whisper STT provider using faster-whisper."""
 
+import threading
 from pathlib import Path
 
 import anyio
@@ -22,14 +23,16 @@ class WhisperSTTProvider(STTProvider):
     def __init__(self, model_size: str = "base"):
         self.model_size = model_size
         self._model = None
+        self._model_lock = threading.Lock()
 
     def _load_model(self):
-        """Lazy-load the WhisperModel (downloads on first use)."""
-        if self._model is None:
-            from faster_whisper import WhisperModel
+        """Lazy-load the WhisperModel (downloads on first use), thread-safe."""
+        with self._model_lock:
+            if self._model is None:
+                from faster_whisper import WhisperModel
 
-            logger.info("Loading faster-whisper model: {}", self.model_size)
-            self._model = WhisperModel(self.model_size, device="cpu", compute_type="int8")
+                logger.info("Loading faster-whisper model: {}", self.model_size)
+                self._model = WhisperModel(self.model_size, device="cpu", compute_type="int8")
         return self._model
 
     async def transcribe(self, file_path: str | Path) -> str:

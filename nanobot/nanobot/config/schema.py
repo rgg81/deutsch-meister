@@ -335,11 +335,18 @@ class SttGroqConfig(Base):
     api_key: str = ""
 
 
+class SttWhisperConfig(Base):
+    """Local Whisper STT provider configuration."""
+
+    model: str = "base"
+
+
 class SttConfig(Base):
     """Speech-to-Text configuration."""
 
     provider: str = "groq"
     groq: SttGroqConfig = Field(default_factory=SttGroqConfig)
+    whisper: SttWhisperConfig = Field(default_factory=SttWhisperConfig)
 
 
 class Config(BaseSettings):

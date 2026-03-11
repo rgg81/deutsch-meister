@@ -165,6 +165,9 @@ class ChannelManager:
                     "groq": {
                         "api_key": stt.groq.api_key or self.config.providers.groq.api_key,
                     },
+                    "whisper": {
+                        "model": stt.whisper.model,
+                    },
                 }
             }
             return create_stt_provider(stt_config)
