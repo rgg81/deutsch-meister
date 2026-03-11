@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.stt import STTProvider, GroqSTTProvider, create_stt_provider
+from src.stt import STTProvider, GroqSTTProvider, WhisperSTTProvider, FallbackSTTProvider, create_stt_provider
 from src.stt.base import STTProvider as STTProviderBase
 
 
@@ -119,6 +119,151 @@ class TestGroqSTTProvider:
         assert result == ""
 
 
+class TestWhisperSTTProvider:
+    """Tests for the WhisperSTTProvider implementation."""
+
+    def test_default_model_size(self):
+        provider = WhisperSTTProvider()
+        assert provider.model_size == "base"
+
+    def test_custom_model_size(self):
+        provider = WhisperSTTProvider(model_size="small")
+        assert provider.model_size == "small"
+
+    def test_model_is_lazy_loaded(self):
+        provider = WhisperSTTProvider()
+        assert provider._model is None
+
+    @pytest.mark.asyncio
+    async def test_transcribe_returns_empty_when_file_not_found(self):
+        provider = WhisperSTTProvider()
+        result = await provider.transcribe("/nonexistent/audio.ogg")
+        assert result == ""
+
+    @pytest.mark.asyncio
+    async def test_transcribe_success(self, tmp_path):
+        audio = tmp_path / "audio.ogg"
+        audio.write_bytes(b"fake audio content")
+
+        mock_segment = MagicMock()
+        mock_segment.text = "Guten Morgen"
+        mock_model = MagicMock()
+        mock_model.transcribe.return_value = ([mock_segment], MagicMock())
+
+        provider = WhisperSTTProvider(model_size="base")
+        with patch("src.stt.whisper.WhisperSTTProvider._load_model", return_value=mock_model):
+            result = await provider.transcribe(audio)
+
+        assert result == "Guten Morgen"
+
+    @pytest.mark.asyncio
+    async def test_transcribe_joins_multiple_segments(self, tmp_path):
+        audio = tmp_path / "audio.ogg"
+        audio.write_bytes(b"fake audio")
+
+        seg1 = MagicMock()
+        seg1.text = "Guten"
+        seg2 = MagicMock()
+        seg2.text = "Morgen"
+        mock_model = MagicMock()
+        mock_model.transcribe.return_value = ([seg1, seg2], MagicMock())
+
+        provider = WhisperSTTProvider()
+        with patch("src.stt.whisper.WhisperSTTProvider._load_model", return_value=mock_model):
+            result = await provider.transcribe(audio)
+
+        assert result == "Guten Morgen"
+
+    @pytest.mark.asyncio
+    async def test_transcribe_handles_exception(self, tmp_path):
+        audio = tmp_path / "audio.ogg"
+        audio.write_bytes(b"fake audio")
+
+        provider = WhisperSTTProvider()
+        with patch("src.stt.whisper.WhisperSTTProvider._load_model", side_effect=RuntimeError("model error")):
+            result = await provider.transcribe(audio)
+
+        assert result == ""
+
+
+class TestFallbackSTTProvider:
+    """Tests for the FallbackSTTProvider implementation."""
+
+    @pytest.mark.asyncio
+    async def test_returns_first_successful_result(self, tmp_path):
+        audio = tmp_path / "audio.ogg"
+        audio.write_bytes(b"fake")
+
+        primary = AsyncMock()
+        primary.transcribe = AsyncMock(return_value="Hallo Welt")
+        secondary = AsyncMock()
+        secondary.transcribe = AsyncMock(return_value="fallback result")
+
+        provider = FallbackSTTProvider(providers=[primary, secondary])
+        result = await provider.transcribe(audio)
+
+        assert result == "Hallo Welt"
+        primary.transcribe.assert_called_once()
+        secondary.transcribe.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_falls_back_when_primary_returns_empty(self, tmp_path):
+        audio = tmp_path / "audio.ogg"
+        audio.write_bytes(b"fake")
+
+        primary = AsyncMock()
+        primary.transcribe = AsyncMock(return_value="")
+        secondary = AsyncMock()
+        secondary.transcribe = AsyncMock(return_value="Guten Tag")
+
+        provider = FallbackSTTProvider(providers=[primary, secondary])
+        result = await provider.transcribe(audio)
+
+        assert result == "Guten Tag"
+        primary.transcribe.assert_called_once()
+        secondary.transcribe.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_falls_back_when_primary_raises(self, tmp_path):
+        audio = tmp_path / "audio.ogg"
+        audio.write_bytes(b"fake")
+
+        primary = AsyncMock()
+        primary.transcribe = AsyncMock(side_effect=Exception("API error"))
+        secondary = AsyncMock()
+        secondary.transcribe = AsyncMock(return_value="Auf Wiedersehen")
+
+        provider = FallbackSTTProvider(providers=[primary, secondary])
+        result = await provider.transcribe(audio)
+
+        assert result == "Auf Wiedersehen"
+
+    @pytest.mark.asyncio
+    async def test_returns_empty_when_all_fail(self, tmp_path):
+        audio = tmp_path / "audio.ogg"
+        audio.write_bytes(b"fake")
+
+        p1 = AsyncMock()
+        p1.transcribe = AsyncMock(return_value="")
+        p2 = AsyncMock()
+        p2.transcribe = AsyncMock(side_effect=Exception("error"))
+
+        provider = FallbackSTTProvider(providers=[p1, p2])
+        result = await provider.transcribe(audio)
+
+        assert result == ""
+
+    @pytest.mark.asyncio
+    async def test_empty_provider_list_returns_empty(self, tmp_path):
+        audio = tmp_path / "audio.ogg"
+        audio.write_bytes(b"fake")
+
+        provider = FallbackSTTProvider(providers=[])
+        result = await provider.transcribe(audio)
+
+        assert result == ""
+
+
 class TestCreateSTTProvider:
     """Tests for the create_stt_provider factory function."""
 
@@ -149,3 +294,42 @@ class TestCreateSTTProvider:
         config = {"stt": {"provider": "groq", "groq": {"api_key": "k"}}}
         provider = create_stt_provider(config)
         assert "groq.com" in provider.api_url
+
+    def test_creates_whisper_provider(self):
+        config = {"stt": {"provider": "whisper", "whisper": {"model": "tiny"}}}
+        provider = create_stt_provider(config)
+        assert isinstance(provider, WhisperSTTProvider)
+        assert provider.model_size == "tiny"
+
+    def test_creates_whisper_provider_with_default_model(self):
+        config = {"stt": {"provider": "whisper"}}
+        provider = create_stt_provider(config)
+        assert isinstance(provider, WhisperSTTProvider)
+        assert provider.model_size == "base"
+
+    def test_creates_groq_with_fallback_provider(self):
+        config = {
+            "stt": {
+                "provider": "groq_with_fallback",
+                "groq": {"api_key": "test-key"},
+                "whisper": {"model": "small"},
+            }
+        }
+        provider = create_stt_provider(config)
+        assert isinstance(provider, FallbackSTTProvider)
+        assert len(provider.providers) == 2
+        assert isinstance(provider.providers[0], GroqSTTProvider)
+        assert isinstance(provider.providers[1], WhisperSTTProvider)
+        assert provider.providers[0].api_key == "test-key"
+        assert provider.providers[1].model_size == "small"
+
+    def test_groq_with_fallback_uses_default_whisper_model(self):
+        config = {
+            "stt": {
+                "provider": "groq_with_fallback",
+                "groq": {"api_key": "key"},
+            }
+        }
+        provider = create_stt_provider(config)
+        assert isinstance(provider, FallbackSTTProvider)
+        assert provider.providers[1].model_size == "base"
