@@ -349,6 +349,13 @@ class SttConfig(Base):
     whisper: SttWhisperConfig = Field(default_factory=SttWhisperConfig)
 
 
+class TtsConfig(Base):
+    """Text-to-Speech configuration."""
+
+    provider: str = "edge"
+    voice: str = "de-DE-ConradNeural"
+
+
 class Config(BaseSettings):
     """Root configuration for nanobot."""
 
@@ -358,6 +365,7 @@ class Config(BaseSettings):
     gateway: GatewayConfig = Field(default_factory=GatewayConfig)
     tools: ToolsConfig = Field(default_factory=ToolsConfig)
     stt: SttConfig = Field(default_factory=SttConfig)
+    tts: TtsConfig = Field(default_factory=TtsConfig)
 
     @property
     def workspace_path(self) -> Path:

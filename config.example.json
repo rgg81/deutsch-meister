@@ -31,5 +31,9 @@
     "whisper": {
       "model": "base"
     }
+  },
+  "tts": {
+    "provider": "edge",
+    "voice": "de-DE-ConradNeural"
   }
 }
