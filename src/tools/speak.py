@@ -1,6 +1,8 @@
 """Speak tool for generating German audio pronunciation."""
 
 import hashlib
+import os
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -39,7 +41,7 @@ class SpeakTool(Tool):
                 },
                 "voice": {
                     "type": "string",
-                    "description": "Optional voice ID (default: de-DE-ConradNeural)"
+                    "description": "Optional voice ID (defaults to the provider's configured voice)"
                 }
             },
             "required": ["text"]
@@ -48,13 +50,25 @@ class SpeakTool(Tool):
     async def execute(self, text: str, voice: str | None = None, **kwargs: Any) -> str:
         try:
             media_dir = get_media_dir("tts")
-            filename = hashlib.md5(text.encode()).hexdigest()[:12] + ".ogg"
-            output_path = str(media_dir / filename)
+            cache_key = f"{text}\x00{voice or ''}"
+            filename = hashlib.md5(cache_key.encode()).hexdigest()[:12] + ".ogg"
+            output_path = Path(media_dir) / filename
 
-            if Path(output_path).exists():
-                return output_path
+            if output_path.exists() and output_path.stat().st_size > 0:
+                return str(output_path)
 
-            await self._tts.synthesize(text, output_path, voice=voice)
-            return output_path
+            tmp_fd, tmp_path = tempfile.mkstemp(dir=media_dir, suffix=".ogg.tmp")
+            os.close(tmp_fd)
+            try:
+                await self._tts.synthesize(text, tmp_path, voice=voice)
+                os.replace(tmp_path, output_path)
+            except Exception:
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+                raise
+
+            return str(output_path)
         except Exception as e:
             return f"Error executing speak: {e}"
