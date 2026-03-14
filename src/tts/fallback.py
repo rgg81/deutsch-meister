@@ -1,5 +1,7 @@
 """Fallback TTS provider — chains multiple providers, trying each in order."""
 
+import asyncio
+
 from loguru import logger
 
 from src.tts.base import TTSProvider
@@ -49,6 +51,8 @@ class FallbackTTSProvider(TTSProvider):
                 result = await provider.synthesize(text, output_path, voice)
                 logger.debug("TTS succeeded with provider={}", name)
                 return result
+            except asyncio.CancelledError:
+                raise
             except Exception as exc:
                 logger.warning("TTS provider={} failed: {}; trying next", name, exc)
                 last_exc = exc

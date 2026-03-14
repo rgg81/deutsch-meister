@@ -1,5 +1,6 @@
 """Unit tests for the TTS provider abstraction."""
 
+import asyncio
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -398,6 +399,20 @@ class TestFallbackTTSProvider:
 
         for p in providers:
             p.synthesize.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_cancellation_propagates_without_trying_next_provider(self, tmp_path):
+        output = str(tmp_path / "out.ogg")
+        primary = AsyncMock(spec=TTSProvider)
+        primary.synthesize = AsyncMock(side_effect=asyncio.CancelledError())
+        fallback = AsyncMock(spec=TTSProvider)
+        fallback.synthesize = AsyncMock(return_value=output)
+
+        provider = FallbackTTSProvider([primary, fallback])
+        with pytest.raises(asyncio.CancelledError):
+            await provider.synthesize("Hallo", output)
+
+        fallback.synthesize.assert_not_called()
 
 
 class TestCreateTTSProvider:
