@@ -7,3 +7,4 @@ pytest
 pytest-asyncio
 faster-whisper
 edge-tts
+piper-tts
