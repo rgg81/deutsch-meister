@@ -38,10 +38,12 @@ class EdgeTTSProvider(TTSProvider):
             output_path on success.
 
         Raises:
-            RuntimeError: If synthesis or conversion fails.
+            Exception: Propagates any exception raised by edge-tts or ffmpeg.
         """
         v = voice or self.voice
-        tmp_mp3 = output_path.replace(".ogg", ".mp3")
+        output = Path(output_path)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        tmp_mp3 = str(output.with_suffix(".mp3"))
 
         try:
             communicate = edge_tts.Communicate(text, v)

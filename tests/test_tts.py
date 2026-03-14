@@ -1,5 +1,6 @@
 """Unit tests for the TTS provider abstraction."""
 
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -66,9 +67,25 @@ class TestEdgeTTSProvider:
         assert result == output
 
     @pytest.mark.asyncio
+    async def test_synthesize_creates_parent_directory(self, tmp_path):
+        output = str(tmp_path / "new_subdir" / "out.ogg")
+
+        mock_communicate = AsyncMock()
+        mock_communicate.save = AsyncMock()
+
+        with patch("src.tts.edge.edge_tts.Communicate", return_value=mock_communicate), \
+             patch("src.tts.edge.convert_to_ogg_opus", new_callable=AsyncMock, return_value=output):
+            provider = EdgeTTSProvider()
+            result = await provider.synthesize("Test", output)
+
+        from pathlib import Path
+        assert Path(output).parent.exists()
+        assert result == output
+
+    @pytest.mark.asyncio
     async def test_synthesize_calls_convert_to_ogg(self, tmp_path):
         output = str(tmp_path / "out.ogg")
-        expected_mp3 = output.replace(".ogg", ".mp3")
+        expected_mp3 = str(Path(output).with_suffix(".mp3"))
 
         mock_communicate = AsyncMock()
         mock_communicate.save = AsyncMock()
@@ -84,7 +101,7 @@ class TestEdgeTTSProvider:
     @pytest.mark.asyncio
     async def test_synthesize_cleans_up_tmp_mp3(self, tmp_path):
         output = str(tmp_path / "out.ogg")
-        tmp_mp3 = output.replace(".ogg", ".mp3")
+        tmp_mp3 = str(Path(output).with_suffix(".mp3"))
 
         # Create a fake MP3 file to verify cleanup
         open(tmp_mp3, "w").close()
@@ -97,13 +114,12 @@ class TestEdgeTTSProvider:
             provider = EdgeTTSProvider()
             await provider.synthesize("Test", output)
 
-        from pathlib import Path
         assert not Path(tmp_mp3).exists()
 
     @pytest.mark.asyncio
     async def test_synthesize_cleans_up_mp3_on_error(self, tmp_path):
         output = str(tmp_path / "out.ogg")
-        tmp_mp3 = output.replace(".ogg", ".mp3")
+        tmp_mp3 = str(Path(output).with_suffix(".mp3"))
 
         mock_communicate = AsyncMock()
         mock_communicate.save = AsyncMock(side_effect=RuntimeError("TTS error"))
@@ -113,7 +129,6 @@ class TestEdgeTTSProvider:
             with pytest.raises(RuntimeError, match="TTS error"):
                 await provider.synthesize("Test", output)
 
-        from pathlib import Path
         assert not Path(tmp_mp3).exists()
 
     @pytest.mark.asyncio
@@ -138,7 +153,8 @@ class TestConvertToOggOpus:
         output_path = str(tmp_path / "output.ogg")
 
         mock_proc = MagicMock()
-        mock_proc.wait = AsyncMock(return_value=0)
+        mock_proc.returncode = 0
+        mock_proc.communicate = AsyncMock(return_value=(None, b""))
 
         with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock, return_value=mock_proc):
             from src.audio import convert_to_ogg_opus
@@ -152,11 +168,22 @@ class TestConvertToOggOpus:
         output_path = str(tmp_path / "output.ogg")
 
         mock_proc = MagicMock()
-        mock_proc.wait = AsyncMock(return_value=1)
+        mock_proc.returncode = 1
+        mock_proc.communicate = AsyncMock(return_value=(None, b"some ffmpeg error"))
 
         with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock, return_value=mock_proc):
             from src.audio import convert_to_ogg_opus
             with pytest.raises(RuntimeError, match="ffmpeg exited with code 1"):
+                await convert_to_ogg_opus(input_path, output_path)
+
+    @pytest.mark.asyncio
+    async def test_raises_runtime_error_when_ffmpeg_missing(self, tmp_path):
+        input_path = str(tmp_path / "input.mp3")
+        output_path = str(tmp_path / "output.ogg")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=FileNotFoundError):
+            from src.audio import convert_to_ogg_opus
+            with pytest.raises(RuntimeError, match="ffmpeg not found"):
                 await convert_to_ogg_opus(input_path, output_path)
 
     @pytest.mark.asyncio
@@ -165,7 +192,8 @@ class TestConvertToOggOpus:
         output_path = str(tmp_path / "output.ogg")
 
         mock_proc = MagicMock()
-        mock_proc.wait = AsyncMock(return_value=0)
+        mock_proc.returncode = 0
+        mock_proc.communicate = AsyncMock(return_value=(None, b""))
 
         with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock, return_value=mock_proc) as mock_exec:
             from src.audio import convert_to_ogg_opus
