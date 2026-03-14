@@ -33,7 +33,10 @@
     }
   },
   "tts": {
-    "provider": "edge",
-    "voice": "de-DE-ConradNeural"
+    "provider": "edge_with_fallback",
+    "voice": "de-DE-ConradNeural",
+    "piper": {
+      "model": "de_DE-thorsten-high"
+    }
   }
 }

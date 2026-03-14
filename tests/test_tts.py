@@ -1,11 +1,12 @@
 """Unit tests for the TTS provider abstraction."""
 
+import asyncio
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.tts import TTSProvider, EdgeTTSProvider, create_tts_provider
+from src.tts import TTSProvider, EdgeTTSProvider, FallbackTTSProvider, PiperTTSProvider, create_tts_provider
 from src.tts.base import TTSProvider as TTSProviderBase
 
 
@@ -209,6 +210,211 @@ class TestConvertToOggOpus:
         assert output_path in call_args
 
 
+class TestPiperTTSProvider:
+    """Tests for the PiperTTSProvider implementation."""
+
+    def test_default_model(self):
+        provider = PiperTTSProvider()
+        assert provider.model == "de_DE-thorsten-high"
+
+    def test_custom_model(self):
+        provider = PiperTTSProvider(model="de_DE-thorsten-low")
+        assert provider.model == "de_DE-thorsten-low"
+
+    @pytest.mark.asyncio
+    async def test_synthesize_success(self, tmp_path):
+        output = str(tmp_path / "out.ogg")
+
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.communicate = AsyncMock(return_value=(None, b""))
+
+        with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock, return_value=mock_proc), \
+             patch("src.tts.piper.convert_to_ogg_opus", new_callable=AsyncMock, return_value=output):
+            provider = PiperTTSProvider()
+            result = await provider.synthesize("Hallo Welt", output)
+
+        assert result == output
+
+    @pytest.mark.asyncio
+    async def test_synthesize_passes_text_via_stdin(self, tmp_path):
+        output = str(tmp_path / "out.ogg")
+
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.communicate = AsyncMock(return_value=(None, b""))
+
+        with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock, return_value=mock_proc) as mock_exec, \
+             patch("src.tts.piper.convert_to_ogg_opus", new_callable=AsyncMock, return_value=output):
+            provider = PiperTTSProvider()
+            await provider.synthesize("Guten Tag", output)
+
+        mock_proc.communicate.assert_called_once_with(input=b"Guten Tag")
+
+    @pytest.mark.asyncio
+    async def test_synthesize_creates_parent_directory(self, tmp_path):
+        output = str(tmp_path / "new_subdir" / "out.ogg")
+
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.communicate = AsyncMock(return_value=(None, b""))
+
+        with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock, return_value=mock_proc), \
+             patch("src.tts.piper.convert_to_ogg_opus", new_callable=AsyncMock, return_value=output):
+            provider = PiperTTSProvider()
+            await provider.synthesize("Test", output)
+
+        assert Path(output).parent.exists()
+
+    @pytest.mark.asyncio
+    async def test_synthesize_cleans_up_wav_on_success(self, tmp_path):
+        output = str(tmp_path / "out.ogg")
+        tmp_wav = str(Path(output).with_suffix(".wav"))
+        open(tmp_wav, "w").close()
+
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.communicate = AsyncMock(return_value=(None, b""))
+
+        with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock, return_value=mock_proc), \
+             patch("src.tts.piper.convert_to_ogg_opus", new_callable=AsyncMock, return_value=output):
+            provider = PiperTTSProvider()
+            await provider.synthesize("Test", output)
+
+        assert not Path(tmp_wav).exists()
+
+    @pytest.mark.asyncio
+    async def test_synthesize_cleans_up_wav_on_error(self, tmp_path):
+        output = str(tmp_path / "out.ogg")
+        tmp_wav = str(Path(output).with_suffix(".wav"))
+        open(tmp_wav, "w").close()
+
+        mock_proc = MagicMock()
+        mock_proc.returncode = 1
+        mock_proc.communicate = AsyncMock(return_value=(None, b"model not found"))
+
+        with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock, return_value=mock_proc):
+            provider = PiperTTSProvider()
+            with pytest.raises(RuntimeError, match="piper exited with code 1"):
+                await provider.synthesize("Test", output)
+
+        assert not Path(tmp_wav).exists()
+
+    @pytest.mark.asyncio
+    async def test_synthesize_raises_runtime_error_when_piper_missing(self, tmp_path):
+        output = str(tmp_path / "out.ogg")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=FileNotFoundError):
+            provider = PiperTTSProvider()
+            with pytest.raises(RuntimeError, match="piper not found"):
+                await provider.synthesize("Test", output)
+
+    @pytest.mark.asyncio
+    async def test_synthesize_uses_correct_model(self, tmp_path):
+        output = str(tmp_path / "out.ogg")
+
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.communicate = AsyncMock(return_value=(None, b""))
+
+        with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock, return_value=mock_proc) as mock_exec, \
+             patch("src.tts.piper.convert_to_ogg_opus", new_callable=AsyncMock, return_value=output):
+            provider = PiperTTSProvider(model="de_DE-thorsten-low")
+            await provider.synthesize("Test", output)
+
+        call_args = mock_exec.call_args[0]
+        assert "piper" in call_args
+        assert "de_DE-thorsten-low" in call_args
+
+
+class TestFallbackTTSProvider:
+    """Tests for the FallbackTTSProvider implementation."""
+
+    def test_requires_at_least_one_provider(self):
+        with pytest.raises(ValueError, match="at least one provider"):
+            FallbackTTSProvider([])
+
+    @pytest.mark.asyncio
+    async def test_returns_first_provider_result_when_it_succeeds(self, tmp_path):
+        output = str(tmp_path / "out.ogg")
+        primary = AsyncMock(spec=TTSProvider)
+        primary.synthesize = AsyncMock(return_value=output)
+        fallback = AsyncMock(spec=TTSProvider)
+
+        provider = FallbackTTSProvider([primary, fallback])
+        result = await provider.synthesize("Hallo", output)
+
+        assert result == output
+        primary.synthesize.assert_called_once_with("Hallo", output, None)
+        fallback.synthesize.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_falls_back_when_primary_fails(self, tmp_path):
+        output = str(tmp_path / "out.ogg")
+        primary = AsyncMock(spec=TTSProvider)
+        primary.synthesize = AsyncMock(side_effect=RuntimeError("network error"))
+        fallback = AsyncMock(spec=TTSProvider)
+        fallback.synthesize = AsyncMock(return_value=output)
+
+        provider = FallbackTTSProvider([primary, fallback])
+        result = await provider.synthesize("Hallo", output)
+
+        assert result == output
+        primary.synthesize.assert_called_once()
+        fallback.synthesize.assert_called_once_with("Hallo", output, None)
+
+    @pytest.mark.asyncio
+    async def test_raises_runtime_error_when_all_fail(self, tmp_path):
+        output = str(tmp_path / "out.ogg")
+        p1 = AsyncMock(spec=TTSProvider)
+        p1.synthesize = AsyncMock(side_effect=RuntimeError("error1"))
+        p2 = AsyncMock(spec=TTSProvider)
+        p2.synthesize = AsyncMock(side_effect=RuntimeError("error2"))
+
+        provider = FallbackTTSProvider([p1, p2])
+        with pytest.raises(RuntimeError, match="All TTS providers failed"):
+            await provider.synthesize("Hallo", output)
+
+    @pytest.mark.asyncio
+    async def test_passes_voice_override_to_providers(self, tmp_path):
+        output = str(tmp_path / "out.ogg")
+        primary = AsyncMock(spec=TTSProvider)
+        primary.synthesize = AsyncMock(return_value=output)
+
+        provider = FallbackTTSProvider([primary])
+        await provider.synthesize("Hallo", output, voice="de-DE-KatjaNeural")
+
+        primary.synthesize.assert_called_once_with("Hallo", output, "de-DE-KatjaNeural")
+
+    @pytest.mark.asyncio
+    async def test_tries_all_providers_before_giving_up(self, tmp_path):
+        output = str(tmp_path / "out.ogg")
+        providers = [AsyncMock(spec=TTSProvider) for _ in range(3)]
+        for p in providers:
+            p.synthesize = AsyncMock(side_effect=RuntimeError("fail"))
+
+        provider = FallbackTTSProvider(providers)
+        with pytest.raises(RuntimeError, match="All TTS providers failed"):
+            await provider.synthesize("Hallo", output)
+
+        for p in providers:
+            p.synthesize.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_cancellation_propagates_without_trying_next_provider(self, tmp_path):
+        output = str(tmp_path / "out.ogg")
+        primary = AsyncMock(spec=TTSProvider)
+        primary.synthesize = AsyncMock(side_effect=asyncio.CancelledError())
+        fallback = AsyncMock(spec=TTSProvider)
+        fallback.synthesize = AsyncMock(return_value=output)
+
+        provider = FallbackTTSProvider([primary, fallback])
+        with pytest.raises(asyncio.CancelledError):
+            await provider.synthesize("Hallo", output)
+
+        fallback.synthesize.assert_not_called()
+
+
 class TestCreateTTSProvider:
     """Tests for the create_tts_provider factory function."""
 
@@ -242,3 +448,40 @@ class TestCreateTTSProvider:
         provider = create_tts_provider({"other": "config"})
         assert isinstance(provider, EdgeTTSProvider)
         assert provider.voice == EdgeTTSProvider.DEFAULT_VOICE
+
+    def test_creates_piper_provider(self):
+        config = {"tts": {"provider": "piper"}}
+        provider = create_tts_provider(config)
+        assert isinstance(provider, PiperTTSProvider)
+        assert provider.model == PiperTTSProvider.DEFAULT_MODEL
+
+    def test_creates_piper_provider_with_custom_model(self):
+        config = {"tts": {"provider": "piper", "piper": {"model": "de_DE-thorsten-low"}}}
+        provider = create_tts_provider(config)
+        assert isinstance(provider, PiperTTSProvider)
+        assert provider.model == "de_DE-thorsten-low"
+
+    def test_creates_edge_with_fallback_provider(self):
+        config = {"tts": {"provider": "edge_with_fallback", "voice": "de-DE-ConradNeural"}}
+        provider = create_tts_provider(config)
+        assert isinstance(provider, FallbackTTSProvider)
+        assert len(provider.providers) == 2
+        assert isinstance(provider.providers[0], EdgeTTSProvider)
+        assert isinstance(provider.providers[1], PiperTTSProvider)
+
+    def test_edge_with_fallback_applies_voice(self):
+        config = {"tts": {"provider": "edge_with_fallback", "voice": "de-DE-KatjaNeural"}}
+        provider = create_tts_provider(config)
+        assert isinstance(provider, FallbackTTSProvider)
+        assert provider.providers[0].voice == "de-DE-KatjaNeural"
+
+    def test_edge_with_fallback_applies_piper_model(self):
+        config = {
+            "tts": {
+                "provider": "edge_with_fallback",
+                "piper": {"model": "de_DE-thorsten-low"},
+            }
+        }
+        provider = create_tts_provider(config)
+        assert isinstance(provider, FallbackTTSProvider)
+        assert provider.providers[1].model == "de_DE-thorsten-low"
