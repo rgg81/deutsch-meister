@@ -171,6 +171,20 @@ pytest tests/
 python -m nanobot agent -m "test"
 ```
 
+### Testing Audio
+
+```bash
+# Run automated audio integration tests (no Telegram connection needed)
+pytest tests/test_audio_e2e.py -v
+
+# Run the full test suite
+pytest tests/
+```
+
+Manual end-to-end audio testing (bot running, real Telegram): see [`scripts/test_audio_manual.md`](scripts/test_audio_manual.md).
+
+**Prerequisites for audio tests**: `ffmpeg` (required), `edge-tts` (installed via `requirements.txt`), `faster-whisper` and `piper-tts` (optional, for fallback providers).
+
 ## License
 
 MIT
