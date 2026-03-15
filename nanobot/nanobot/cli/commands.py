@@ -426,6 +426,16 @@ def gateway(
         # Fallback keeps prior behavior but remains explicit.
         return "cli", "direct"
 
+    # Create heartbeat context provider
+    from src.heartbeat_state import HeartbeatState
+    from src.heartbeat_context import make_heartbeat_context_provider
+
+    heartbeat_state = HeartbeatState(config.workspace_path / "heartbeat_state.json")
+    heartbeat_context = make_heartbeat_context_provider(
+        state=heartbeat_state,
+        session_manager=session_manager,
+    )
+
     # Create heartbeat service
     async def on_heartbeat_execute(tasks: str) -> str:
         """Phase 2: execute heartbeat tasks through the full agent loop."""
@@ -449,6 +459,7 @@ def gateway(
         if channel == "cli":
             return  # No external channel available to deliver to
         await bus.publish_outbound(OutboundMessage(channel=channel, chat_id=chat_id, content=response))
+        heartbeat_state.record_reminder()
 
     hb_cfg = config.gateway.heartbeat
     heartbeat = HeartbeatService(
@@ -459,6 +470,7 @@ def gateway(
         on_notify=on_heartbeat_notify,
         interval_s=hb_cfg.interval_s,
         enabled=hb_cfg.enabled,
+        context_provider=heartbeat_context,
     )
 
     if channels.enabled_channels:

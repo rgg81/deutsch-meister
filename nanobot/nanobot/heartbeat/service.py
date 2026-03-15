@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Coroutine
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Coroutine
 
 from loguru import logger
 
@@ -59,6 +59,7 @@ class HeartbeatService:
         on_notify: Callable[[str], Coroutine[Any, Any, None]] | None = None,
         interval_s: int = 30 * 60,
         enabled: bool = True,
+        context_provider: Callable[[], Awaitable[str]] | None = None,
     ):
         self.workspace = workspace
         self.provider = provider
@@ -67,6 +68,7 @@ class HeartbeatService:
         self.on_notify = on_notify
         self.interval_s = interval_s
         self.enabled = enabled
+        self.context_provider = context_provider
         self._running = False
         self._task: asyncio.Task | None = None
 
@@ -87,13 +89,20 @@ class HeartbeatService:
 
         Returns (action, tasks) where action is 'skip' or 'run'.
         """
+        user_content = (
+            "Review the following HEARTBEAT.md and decide whether there are active tasks.\n\n"
+            f"{content}"
+        )
+
+        if self.context_provider:
+            runtime_ctx = await self.context_provider()
+            if runtime_ctx:
+                user_content += f"\n\n{runtime_ctx}"
+
         response = await self.provider.chat(
             messages=[
                 {"role": "system", "content": "You are a heartbeat agent. Call the heartbeat tool to report your decision."},
-                {"role": "user", "content": (
-                    "Review the following HEARTBEAT.md and decide whether there are active tasks.\n\n"
-                    f"{content}"
-                )},
+                {"role": "user", "content": user_content},
             ],
             tools=_HEARTBEAT_TOOL,
             model=self.model,

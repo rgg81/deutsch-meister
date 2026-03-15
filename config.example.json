@@ -4,9 +4,15 @@
   },
   "agents": {
     "defaults": {
-      "model": "github_copilot/gpt-4o",
+      "model": "github_copilot/gpt-4.1",
       "provider": "github_copilot",
       "workspace": "./workspace"
+    }
+  },
+  "gateway": {
+    "heartbeat": {
+      "enabled": true,
+      "interval_s": 3600
     }
   },
   "channels": {
