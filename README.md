@@ -9,6 +9,7 @@ DeutschMeister is a conversational German tutor that:
 - Tracks vocabulary progress using a Spaced Repetition System (SRS)
 - Follows the CEFR curriculum (A1 → B1)
 - Adapts to your learning pace and weaknesses
+- Provides audio pronunciation for vocabulary and listening exercises (use `/pronounce [word]` or ask the tutor)
 
 ## Tech Stack
 
