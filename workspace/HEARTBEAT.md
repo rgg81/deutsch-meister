@@ -1,22 +1,16 @@
-# Heartbeat Rules
+# Heartbeat: Daily Inactivity Reminder
 
-## Check-in Reminder
+## Phase 1 — Decision Rules
 
-If the user has not sent a message in **24 hours**, send a reminder via Telegram.
+Read the **Runtime Context** section below carefully. It contains computed data about the current state.
 
-The reminder should:
-- Feel like a text from someone who actually knows you — not a notification from an app
-- Reference the current lesson topic, a vocabulary word, or a cultural tidbit
-- Never use "don't forget" or "you haven't practiced" — no guilt, just a reason to come back
+- If `Action: **skip**` → call `heartbeat(action="skip")`. Done.
+- If `Action: **run**` → call `heartbeat(action="run", tasks="<instruction>")` where `<instruction>` is the Phase 2 message below.
 
-### Example reminders
+Do NOT infer activity or pause state from the task description itself — only use the Runtime Context fields.
 
-- "The German word for 'lightbulb' is Glühbirne — literally 'glow pear.' 🍐 Anyway, want to pick up where we left off?"
-- "How would you say 'I would like a table for two'? We covered this last session. Hit me with your answer!"
-- "Your streak is at [X] days. A quick 5-minute review would keep it alive — and I've got a good one lined up."
+## Phase 2 — Task Instruction (only when action=run)
 
-## Frequency
+Use exactly this as the `tasks` value:
 
-- Maximum **one reminder per 24-hour period**
-- Do not send reminders if the user has already messaged today
-- If the user asks to pause reminders, respect that and stop until they explicitly resume
+> Send Roberto a friendly German lesson check-in message on Telegram. Reference the current CEFR topic, suggest reviewing recent vocabulary, or share a cultural tidbit. Keep it short (2-3 sentences), warm, and in your DeutschMeister voice. No guilt language. Example tone: "Hallo Roberto! Ready to practice some German today? Maybe we can pick up where we left off with ordering food — Ich möchte einen Kaffee, bitte! ☕🇩🇪"
