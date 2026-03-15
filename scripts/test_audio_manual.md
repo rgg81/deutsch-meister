@@ -8,8 +8,7 @@ Step-by-step instructions for manually validating the end-to-end audio pipeline
 - Bot running: `python -m nanobot gateway --config config.json`
 - `config.json` has `stt` and `tts` sections configured (see `config.example.json`)
 - `ffmpeg` installed (`apt install ffmpeg` or `brew install ffmpeg`)
-- Optional (for STT fallback): `pip install faster-whisper`
-- Optional (for TTS fallback): `pip install piper-tts`
+- `faster-whisper` and `piper-tts` are installed by default via `pip install -r requirements.txt` (used only when configured in `config.json`)
 
 ### Minimal config.json audio sections
 
@@ -107,11 +106,19 @@ Step-by-step instructions for manually validating the end-to-end audio pipeline
 > **Requires**: `piper-tts` installed (`pip install piper-tts`) and the Thorsten
 > model downloaded (`piper --model de_DE-thorsten-high --download-dir ~/.local/share/piper`).
 
-1. Temporarily break edge-tts by blocking outbound connections or modifying
-   `src/tts/edge.py` to always raise.
-2. Send: **`/pronounce Schmetterling`**
-3. **Expected**: Voice message still arrives, synthesised by Piper locally.
-4. **Check logs**: Warning about edge-tts failure, then Piper synthesis succeeds.
+1. Temporarily set an invalid voice name in `config.json` to force edge-tts to fail:
+   ```json
+   "tts": {
+     "provider": "edge_with_fallback",
+     "voice": "invalid-voice-to-force-failure",
+     "piper": { "model": "de_DE-thorsten-high" }
+   }
+   ```
+2. Restart the bot.
+3. Send: **`/pronounce Schmetterling`**
+4. **Expected**: Voice message still arrives, synthesised by Piper locally.
+5. **Check logs**: Warning about edge-tts failure (bad voice), then Piper synthesis succeeds.
+6. Restore your real voice name (`de-DE-ConradNeural`) when done.
 
 ---
 

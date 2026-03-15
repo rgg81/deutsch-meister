@@ -12,6 +12,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from nanobot.bus.events import OutboundMessage
+from nanobot.channels.telegram import TelegramChannel
+
 from src.stt import (
     FallbackSTTProvider,
     GroqSTTProvider,
@@ -360,10 +363,11 @@ class TestFullRoundTrip:
     @pytest.mark.asyncio
     async def test_complete_voice_round_trip(self, tmp_path):
         """
-        Full pipeline: inbound voice → STT → speak tool → outbound OGG.
+        Full pipeline: inbound voice → STT → speak tool → OutboundMessage → send_voice.
 
-        Simulates the agent receiving a transcribed voice query and responding
-        with a synthesized audio message.
+        Simulates the agent receiving a transcribed voice query, responding with a
+        synthesized audio message, and sending it via Telegram (send_voice is called
+        for .ogg media).
         """
         # --- Step 1: Inbound voice message → transcription ---
         inbound_ogg = tmp_path / "inbound.ogg"
@@ -391,12 +395,35 @@ class TestFullRoundTrip:
             mp.setattr("src.tools.speak.get_media_dir", lambda _=None: tmp_path)
             outbound_ogg = await speak_tool.execute(text="Schmetterling")
 
-        # --- Step 3: Verify outbound message contains OGG media ---
         assert outbound_ogg.endswith(".ogg")
         assert Path(outbound_ogg).exists()
-        # In a real outbound message this path would be in: OutboundMessage.media
-        outbound_media = [outbound_ogg]
-        assert any(m.endswith(".ogg") for m in outbound_media)
+        assert Path(outbound_ogg).stat().st_size > 0
+
+        # --- Step 3: OutboundMessage with OGG media triggers send_voice on Telegram ---
+        msg = OutboundMessage(
+            channel="telegram",
+            chat_id="123456",
+            content="Schmetterling bedeutet butterfly.",
+            media=[outbound_ogg],
+        )
+
+        # OGG extension must map to "voice" media type
+        assert TelegramChannel._get_media_type(outbound_ogg) == "voice"
+
+        # Build a minimal TelegramChannel with a mocked bot and call send()
+        channel = TelegramChannel.__new__(TelegramChannel)
+        mock_bot = AsyncMock()
+        mock_app = MagicMock()
+        mock_app.bot = mock_bot
+        channel._app = mock_app
+        channel._message_threads = {}
+        channel.config = MagicMock()
+        channel.config.reply_to_message = False
+        channel._stop_typing = MagicMock()
+
+        await channel.send(msg)
+
+        mock_bot.send_voice.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_round_trip_with_stt_fallback(self, tmp_path):
@@ -452,12 +479,16 @@ class TestFullRoundTrip:
 
         assert transcription == "Hallo"
 
-        # TTS: Edge fails, Piper succeeds
-        expected_output = str(tmp_path / "response.ogg")
+        # TTS: Edge fails, Piper succeeds (writes real bytes to the provided path)
         edge = AsyncMock(spec=EdgeTTSProvider)
         edge.synthesize = AsyncMock(side_effect=RuntimeError("NoAudioReceived"))
         piper = AsyncMock(spec=PiperTTSProvider)
-        piper.synthesize = AsyncMock(return_value=expected_output)
+
+        async def _piper_synthesize(text, path, voice=None):
+            Path(path).write_bytes(b"fake piper ogg")
+            return path
+
+        piper.synthesize = AsyncMock(side_effect=_piper_synthesize)
 
         tts = FallbackTTSProvider([edge, piper])
         speak_tool = SpeakTool(tts)
@@ -467,6 +498,8 @@ class TestFullRoundTrip:
             outbound_ogg = await speak_tool.execute(text=transcription)
 
         assert outbound_ogg.endswith(".ogg")
+        assert Path(outbound_ogg).exists()
+        assert Path(outbound_ogg).stat().st_size > 0
 
 
 # ---------------------------------------------------------------------------
