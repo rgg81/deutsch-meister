@@ -65,10 +65,12 @@ class AgentLoop:
         session_manager: SessionManager | None = None,
         mcp_servers: dict | None = None,
         channels_config: ChannelsConfig | None = None,
+        tts_provider=None,
     ):
         from nanobot.config.schema import ExecToolConfig
         self.bus = bus
         self.channels_config = channels_config
+        self.tts_provider = tts_provider
         self.provider = provider
         self.workspace = workspace
         self.model = model or provider.get_default_model()
@@ -129,6 +131,9 @@ class AgentLoop:
         self.tools.register(SpawnTool(manager=self.subagents))
         if self.cron_service:
             self.tools.register(CronTool(self.cron_service))
+        if self.tts_provider:
+            from src.tools.speak import SpeakTool
+            self.tools.register(SpeakTool(self.tts_provider))
 
     async def _connect_mcp(self) -> None:
         """Connect to configured MCP servers (one-time, lazy)."""

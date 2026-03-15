@@ -266,6 +266,26 @@ def _make_provider(config: Config):
     )
 
 
+def _make_tts_provider(config: Config):
+    """Create TTS provider from config if the 'tts' key is explicitly present in config.json."""
+    import json
+    from nanobot.config.loader import get_config_path
+
+    config_path = get_config_path()
+    if not config_path.exists():
+        return None
+    try:
+        with open(config_path, encoding="utf-8") as f:
+            raw = json.load(f)
+        if "tts" not in raw:
+            return None
+        from src.tts import create_tts_provider
+        return create_tts_provider(raw)
+    except Exception as e:
+        console.print(f"[yellow]Warning: TTS provider init failed: {e}[/yellow]")
+        return None
+
+
 def _load_runtime_config(config: str | None = None, workspace: str | None = None) -> Config:
     """Load config and optionally override the active workspace."""
     from nanobot.config.loader import load_config, set_config_path
@@ -317,6 +337,7 @@ def gateway(
     sync_workspace_templates(config.workspace_path)
     bus = MessageBus()
     provider = _make_provider(config)
+    tts_provider = _make_tts_provider(config)
     session_manager = SessionManager(config.workspace_path)
 
     # Create cron service first (callback set after agent creation)
@@ -342,6 +363,7 @@ def gateway(
         session_manager=session_manager,
         mcp_servers=config.tools.mcp_servers,
         channels_config=config.channels,
+        tts_provider=tts_provider,
     )
 
     # Set cron callback (needs agent)
@@ -499,6 +521,7 @@ def agent(
 
     bus = MessageBus()
     provider = _make_provider(config)
+    tts_provider = _make_tts_provider(config)
 
     # Create cron service for tool usage (no callback needed for CLI unless running)
     cron_store_path = get_cron_dir() / "jobs.json"
@@ -526,6 +549,7 @@ def agent(
         restrict_to_workspace=config.tools.restrict_to_workspace,
         mcp_servers=config.tools.mcp_servers,
         channels_config=config.channels,
+        tts_provider=tts_provider,
     )
 
     # Show spinner when logs are off (no output to miss); skip when logs are on
