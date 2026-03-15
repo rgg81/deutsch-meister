@@ -266,8 +266,8 @@ def _make_provider(config: Config):
     )
 
 
-def _make_tts_provider(config: Config):
-    """Create TTS provider from config if the 'tts' key is explicitly present in config.json."""
+def _make_tts_provider():
+    """Create TTS provider if the 'tts' key is explicitly present in config.json."""
     import json
     from nanobot.config.loader import get_config_path
 
@@ -337,7 +337,7 @@ def gateway(
     sync_workspace_templates(config.workspace_path)
     bus = MessageBus()
     provider = _make_provider(config)
-    tts_provider = _make_tts_provider(config)
+    tts_provider = _make_tts_provider()
     session_manager = SessionManager(config.workspace_path)
 
     # Create cron service first (callback set after agent creation)
@@ -521,7 +521,7 @@ def agent(
 
     bus = MessageBus()
     provider = _make_provider(config)
-    tts_provider = _make_tts_provider(config)
+    tts_provider = _make_tts_provider()
 
     # Create cron service for tool usage (no callback needed for CLI unless running)
     cron_store_path = get_cron_dir() / "jobs.json"

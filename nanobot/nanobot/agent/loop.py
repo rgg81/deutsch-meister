@@ -30,6 +30,7 @@ from nanobot.session.manager import Session, SessionManager
 if TYPE_CHECKING:
     from nanobot.config.schema import ChannelsConfig, ExecToolConfig
     from nanobot.cron.service import CronService
+    from src.tts.base import TTSProvider
 
 
 class AgentLoop:
@@ -65,7 +66,7 @@ class AgentLoop:
         session_manager: SessionManager | None = None,
         mcp_servers: dict | None = None,
         channels_config: ChannelsConfig | None = None,
-        tts_provider=None,
+        tts_provider: TTSProvider | None = None,
     ):
         from nanobot.config.schema import ExecToolConfig
         self.bus = bus
