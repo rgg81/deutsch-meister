@@ -1,16 +1,16 @@
-# Heartbeat Tasks
+# Heartbeat: Daily Inactivity Reminder
 
-This file is checked every 30 minutes by your nanobot agent.
-Add tasks below that you want the agent to work on periodically.
+## Phase 1 — Decision Rules
 
-If this file has no tasks (only headers and comments), the agent will skip the heartbeat.
+Read the **Runtime Context** section below carefully. It contains computed data about the current state.
 
-## Active Tasks
+- If `Action: **skip**` → call `heartbeat(action="skip")`. Done.
+- If `Action: **run**` → call `heartbeat(action="run", tasks="<instruction>")` where `<instruction>` is the Phase 2 message below.
 
-<!-- Add your periodic tasks below this line -->
+Do NOT infer activity or pause state from the task description itself — only use the Runtime Context fields.
 
+## Phase 2 — Task Instruction (only when action=run)
 
-## Completed
+Use exactly this as the `tasks` value:
 
-<!-- Move completed tasks here or delete them -->
-
+> Send Roberto a friendly German lesson check-in message on Telegram. Reference the current CEFR topic, suggest reviewing recent vocabulary, or share a cultural tidbit. Keep it short (2-3 sentences), warm, and in your DeutschMeister voice. No guilt language. Example tone: "Hallo Roberto! Ready to practice some German today? Maybe we can pick up where we left off with ordering food — Ich möchte einen Kaffee, bitte! ☕🇩🇪"
