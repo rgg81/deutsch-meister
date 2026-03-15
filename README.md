@@ -25,6 +25,11 @@ DeutschMeister is a conversational German tutor that:
 - STT provider is configured via `config.json` under the `"stt"` key (see Setup)
 - The `GROQ_API_KEY` environment variable can be used as an alternative to setting the key in `config.json`
 
+- **Text-to-Speech / Speak tool**: The `speak` agent tool (`src/tools/speak.py`) generates `.ogg` audio files from German text using the configured TTS provider
+- The tutor calls `speak` automatically when pronunciation audio would be helpful; the resulting file is sent as a Telegram voice message
+- Generated audio is cached on disk under the NanoBot media directory (keyed by text content and voice), so repeated requests for the same phrase are served instantly without re-synthesizing
+- The TTS provider and voice are configured via the `"tts"` key in `config.json` (see the TTS provider docs for available voices)
+
 ## Project Structure
 
 ```
