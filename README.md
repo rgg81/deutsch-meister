@@ -105,6 +105,18 @@ Edit `config.json` and fill in your values:
 
 > **Optional**: Add an `stt.groq.apiKey` (or set the `GROQ_API_KEY` environment variable) to enable voice message transcription via [Groq](https://console.groq.com/).
 
+> **Optional**: Add a `tts` section to enable voice output. The bot works normally without it — the `speak` tool simply won't be available to the agent. Example:
+> ```json
+> "tts": {
+>   "provider": "edge_with_fallback",
+>   "voice": "de-DE-ConradNeural",
+>   "piper": {
+>     "model": "de_DE-thorsten-high"
+>   }
+> }
+> ```
+> Supported providers: `edge` (Microsoft Neural TTS, cloud), `piper` (local/offline), `edge_with_fallback` (Edge with Piper as offline backup).
+
 ### 4. Authenticate with GitHub Copilot (OAuth)
 
 DeutschMeister uses your GitHub Copilot subscription for AI — **no API key needed**.
