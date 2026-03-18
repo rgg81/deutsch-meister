@@ -61,6 +61,8 @@ workspace/memory/
 workspace/AGENTS.md
 workspace/TOOLS.md
 workspace/USER.md
+workspace/workspace/
+workspace/*.txt
 
 # Tool version managers
 .tool-versions
