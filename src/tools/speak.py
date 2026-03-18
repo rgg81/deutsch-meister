@@ -57,7 +57,7 @@ class SpeakTool(Tool):
             if output_path.exists() and output_path.stat().st_size > 0:
                 return str(output_path)
 
-            tmp_fd, tmp_path = tempfile.mkstemp(dir=media_dir, suffix=".ogg.tmp")
+            tmp_fd, tmp_path = tempfile.mkstemp(dir=media_dir, suffix=".tmp.ogg")
             os.close(tmp_fd)
             try:
                 await self._tts.synthesize(text, tmp_path, voice=voice)
