@@ -6,6 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 DeutschMeister is a personal German language tutor delivered via Telegram, built on NanoBot (a vendored Python agent framework) and powered by GitHub Copilot (OAuth, no API key required). It follows the CEFR curriculum (A1 → B1) with spaced repetition vocabulary tracking.
 
+## Product Vision
+
+DeutschMeister sits in a gap that no existing product fills well. Duolingo gamifies at the cost of depth. ChatGPT has depth but no memory, no curriculum, no structure. Private tutors have everything but cost €30+/hour and don't scale to your schedule.
+
+DeutschMeister is the intersection: **structured CEFR curriculum + persistent memory + spaced repetition + always available**. The teaching persona (SOUL.md + SKILL.md) is genuinely excellent — story-driven grammar, recurring characters, spiral review, adaptive German/English ratio. This is real pedagogy, not a toy.
+
+This product can help thousands of people learn German who can't afford tutors or don't have time for classes. Every contribution should serve that mission: make the learning experience more effective, more personal, and more human.
+
 ## Commands
 
 ```bash
