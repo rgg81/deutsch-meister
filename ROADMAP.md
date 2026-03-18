@@ -200,14 +200,53 @@ Automated end-of-week summaries.
 
 ### 4.1 Multi-User Support
 
-Refactor from single-user to multi-user.
+Refactor from single-user to multi-user. This requires solving two isolation problems: **session/memory isolation** and **data isolation**.
+
+#### Problem: Shared Memory
+
+NanoBot's `MemoryStore` (`nanobot/nanobot/agent/memory.py`) currently writes to a single shared location:
+```
+workspace/memory/MEMORY.md      ← one file for ALL users
+workspace/memory/HISTORY.md     ← one file for ALL users
+```
+
+This means one student's facts ("Maria likes cooking, struggles with dative") would bleed into another student's context. The LLM would confuse students' interests, progress, and personal details.
+
+#### Solution: Two-Layer Per-User Isolation
+
+**Layer 1 — Per-user MemoryStore directories** (NanoBot vendored change):
+
+Modify `MemoryStore.__init__()` to accept a `session_key` parameter and use it as a subdirectory:
+```
+workspace/memory/telegram_123456/MEMORY.md   ← Maria's facts
+workspace/memory/telegram_123456/HISTORY.md  ← Maria's history
+workspace/memory/telegram_789012/MEMORY.md   ← Thomas's facts
+workspace/memory/telegram_789012/HISTORY.md  ← Thomas's history
+```
+
+**Modified NanoBot files (vendored fork):**
+- `nanobot/nanobot/agent/memory.py` — `MemoryStore.__init__(workspace, session_key)` uses `workspace / "memory" / safe_filename(session_key)` instead of `workspace / "memory"`
+- `nanobot/nanobot/agent/context.py` — Pass `session_key` when constructing `MemoryStore`
+- `nanobot/nanobot/agent/loop.py` — Pass `session_key` to `MemoryStore()` in the consolidation call
+
+This is a minimal, clean change — NanoBot already has the session key available in all these call sites via `session.key` (format: `channel:chat_id`, e.g., `telegram:123456`).
+
+**Layer 2 — SQLite as primary per-user data store** (no NanoBot changes):
+
+All structured student data (SRS cards, progress, error patterns, profile) lives in the SQLite database from Phase 1, already designed with `user_id` on every table. The LLM accesses this via tools (`srs_tool`, `progress_tool`, `profile_tool`, `error_tracker`), which derive `user_id` from the `sender_id` in the inbound message.
+
+This means MEMORY.md handles soft context (personal anecdotes, conversation style notes) while SQLite handles structured learning data (vocabulary, scores, curriculum position). Both are fully isolated per user.
+
+#### Sessions (Already Per-User)
+
+NanoBot's `SessionManager` (`nanobot/nanobot/session/manager.py`) already isolates conversations by `channel:chat_id`. Each user gets their own JSONL file in `workspace/sessions/`. No changes needed here.
+
+#### Other Changes
 
 **Modified files:**
-- `config.example.json` — Remove `allowFrom` restriction or make it optional
+- `config.example.json` — Remove `allowFrom` restriction or make it optional (currently limits to specific Telegram user IDs)
 - `src/db/connection.py` — All queries scoped by `user_id` (already designed in schema)
-- All tools — Accept `user_id` parameter derived from `sender_id` in InboundMessage
-
-**Key insight:** NanoBot already has per-session isolation (`channel:chat_id`). The database just needs to key everything by `telegram_id` from the message metadata.
+- All tools in `src/` — Accept `user_id` parameter derived from `sender_id` in InboundMessage
 
 ### 4.2 Subscription Tiers & Feature Gating
 
@@ -331,6 +370,9 @@ Leverage NanoBot's built-in channel support.
 | `config.example.json` | Database path, Stripe keys, multi-user config |
 | `requirements.txt` | aiosqlite, stripe, starlette |
 | `docker-compose.yml` | Webhook port, data volume for SQLite |
+| `nanobot/nanobot/agent/memory.py` | Per-user memory directories (accept session_key) |
+| `nanobot/nanobot/agent/context.py` | Pass session_key to MemoryStore |
+| `nanobot/nanobot/agent/loop.py` | Pass session_key to MemoryStore in consolidation |
 
 ## Verification Plan
 
