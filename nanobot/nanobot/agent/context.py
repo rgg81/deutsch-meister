@@ -23,6 +23,7 @@ class ContextBuilder:
         self.workspace = workspace
         self.memory = MemoryStore(workspace)
         self.skills = SkillsLoader(workspace)
+        self._runtime_context_extra: str = ""
 
     def build_system_prompt(self, skill_names: list[str] | None = None) -> str:
         """Build the system prompt from identity, bootstrap files, memory, and skills."""
@@ -96,15 +97,22 @@ Your workspace is at: {workspace_path}
 
 Reply directly with text for conversations. Only use the 'message' tool to send to a specific chat channel."""
 
-    @staticmethod
-    def _build_runtime_context(channel: str | None, chat_id: str | None) -> str:
+    def set_runtime_context_extra(self, extra: str) -> None:
+        """Set additional runtime context to inject (e.g. Teacher's Notebook)."""
+        self._runtime_context_extra = extra
+
+    def _build_runtime_context(self, channel: str | None, chat_id: str | None) -> str:
         """Build untrusted runtime metadata block for injection before the user message."""
         now = datetime.now().strftime("%Y-%m-%d %H:%M (%A)")
         tz = time.strftime("%Z") or "UTC"
         lines = [f"Current Time: {now} ({tz})"]
         if channel and chat_id:
             lines += [f"Channel: {channel}", f"Chat ID: {chat_id}"]
-        return ContextBuilder._RUNTIME_CONTEXT_TAG + "\n" + "\n".join(lines)
+        base = ContextBuilder._RUNTIME_CONTEXT_TAG + "\n" + "\n".join(lines)
+        if self._runtime_context_extra:
+            base += "\n\n" + self._runtime_context_extra
+            self._runtime_context_extra = ""  # Clear after use
+        return base
 
     def _load_bootstrap_files(self) -> str:
         """Load all bootstrap files from workspace."""
