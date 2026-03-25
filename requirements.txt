@@ -1,11 +1,19 @@
+# Core
 nanobot-ai
 anthropic
 python-telegram-bot
 apscheduler
 anyio
+
+# Data layer
 aiosqlite
-pytest
-pytest-asyncio
-faster-whisper
+
+# Audio
 edge-tts
 piper-tts
+faster-whisper
+
+# Dev / Testing
+pytest
+pytest-asyncio
+ruff

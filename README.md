@@ -35,16 +35,24 @@ DeutschMeister is a conversational German tutor that:
 
 ```
 deutsch-meister/
-├── nanobot/          # Vendored NanoBot core framework
-├── src/              # Custom modules (SRS engine, curriculum, exercises, progress)
-├── curriculum/       # CEFR reference files (A1, A2, B1 topic lists)
+├── nanobot/              # Vendored NanoBot core framework
+├── src/
+│   ├── db/               # SQLite data layer (WAL mode, migrations)
+│   ├── srs/              # Spaced repetition engine + tool
+│   ├── progress/         # Curriculum position tracker + tool
+│   ├── profile/          # Student profile management + tool
+│   ├── context/          # Teacher's Notebook context provider
+│   ├── tts/              # Text-to-Speech providers
+│   ├── stt/              # Speech-to-Text providers
+│   └── tools/            # Custom NanoBot tools (speak)
+├── curriculum/           # CEFR reference files (A1, A2, B1 topic lists)
 ├── skills/
 │   └── deutsch-meister/  # Teaching skill (SKILL.md persona & lesson flow)
 ├── workspace/
-│   ├── SOUL.md       # Agent personality and teaching philosophy
-│   └── HEARTBEAT.md  # Periodic check-in rules
-├── website/          # Static landing page
-├── tests/            # pytest test suite
+│   ├── SOUL.md           # Agent personality and teaching philosophy
+│   └── HEARTBEAT.md      # Periodic check-in rules
+├── website/              # Static landing page
+├── tests/                # pytest test suite (269 tests)
 ├── config.example.json
 ├── requirements.txt
 ├── Dockerfile
@@ -133,10 +141,20 @@ You will be shown a URL to open in your browser and a code to enter. After authe
 
 > **Requirements**: You need an active [GitHub Copilot subscription](https://github.com/features/copilot) (Individual, Business, or Enterprise).
 
-### 5. Run the Agent
+### 5. Install & Run
+
+We use [uv](https://docs.astral.sh/uv/) to manage Python and dependencies:
 
 ```bash
-pip install -r requirements.txt
+# Install uv (if you don't have it)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Create venv with Python 3.12 and install dependencies
+uv venv --python 3.12 .venv
+source .venv/bin/activate
+uv pip install -r requirements.txt -e nanobot/
+
+# Start the bot
 python -m nanobot gateway --config config.json
 ```
 
@@ -164,8 +182,14 @@ The Docker setup mounts `config.json` and the `workspace/` directory into the co
 ## Development
 
 ```bash
-# Run tests
-pytest tests/
+# Run tests (PYTHONPATH=. needed for src/ imports)
+PYTHONPATH=. pytest tests/
+
+# Run a single test file
+PYTHONPATH=. pytest tests/test_db.py -v
+
+# Lint
+ruff check src/
 
 # Smoke-test the agent (triggers GitHub Copilot OAuth on first run)
 python -m nanobot agent -m "test"
@@ -175,15 +199,15 @@ python -m nanobot agent -m "test"
 
 ```bash
 # Run automated audio integration tests (no Telegram connection needed)
-pytest tests/test_audio_e2e.py -v
+PYTHONPATH=. pytest tests/test_audio_e2e.py -v
 
 # Run the full test suite
-pytest tests/
+PYTHONPATH=. pytest tests/
 ```
 
 Manual end-to-end audio testing (bot running, real Telegram): see [`scripts/test_audio_manual.md`](scripts/test_audio_manual.md).
 
-**Prerequisites for audio tests**: `ffmpeg` (required). `edge-tts`, `faster-whisper`, and `piper-tts` are all installed by default via `requirements.txt`; they are only activated when configured in `config.json`.
+**Prerequisites for audio tests**: `ffmpeg` (required, install via `apt install ffmpeg`). `edge-tts`, `faster-whisper`, and `piper-tts` are all installed by default via `requirements.txt`; they are only activated when configured in `config.json`.
 
 ## License
 

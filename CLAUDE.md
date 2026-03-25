@@ -17,14 +17,16 @@ This product can help thousands of people learn German who can't afford tutors o
 ## Commands
 
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+# Setup (uv manages Python + venv)
+uv venv --python 3.12 .venv
+source .venv/bin/activate
+uv pip install -r requirements.txt -e nanobot/
 
-# Run tests
-pytest tests/
+# Run tests (PYTHONPATH=. needed for src/ imports)
+PYTHONPATH=. pytest tests/
 
 # Run a single test file
-pytest tests/test_example.py
+PYTHONPATH=. pytest tests/test_example.py
 
 # Smoke-test the agent (triggers GitHub Copilot OAuth on first run)
 python -m nanobot agent -m "test"
@@ -33,7 +35,7 @@ python -m nanobot agent -m "test"
 python -m nanobot gateway --config config.json
 
 # Lint (ruff is configured in nanobot/pyproject.toml)
-ruff check nanobot/
+ruff check src/ nanobot/
 
 # Run with Docker
 docker-compose up -d
@@ -48,7 +50,14 @@ docker-compose up -d
 - `skills/deutsch-meister/SKILL.md` — detailed lesson structure, slash commands, SRS logic, communication style rules
 - `workspace/HEARTBEAT.md` — rules for daily check-in reminders (24h nudge)
 
-**Custom modules** (`src/`): Where project-specific Python code goes — SRS engine, curriculum state, exercise generators, progress tracking. Currently scaffolded (`.gitkeep`).
+**Custom modules** (`src/`): Where project-specific Python code goes:
+- `src/db/` — SQLite data layer (async, WAL mode, migration runner)
+- `src/srs/` — Spaced repetition engine + NanoBot tool
+- `src/progress/` — Curriculum position tracker + NanoBot tool
+- `src/profile/` — Student profile management + NanoBot tool
+- `src/context/` — Teacher's Notebook context provider (injected before every LLM interaction)
+- `src/tts/`, `src/stt/` — Audio providers (TTS/STT)
+- `src/tools/` — Custom NanoBot tools (speak)
 
 **Curriculum** (`curriculum/`): CEFR reference files listing topics per level. `a1.md` exists; A2 and B1 are planned.
 
@@ -58,7 +67,8 @@ docker-compose up -d
 
 - Python: PEP 8, type hints, docstrings on public functions
 - Ruff linter config: line-length 100, target Python 3.11, rules E/F/I/N/W (E501 ignored)
-- Tests: pytest with `asyncio_mode = "auto"`
+- Package management: `uv` for Python version + venv + deps (no conda/asdf)
+- Tests: pytest with `asyncio_mode = "auto"`, run with `PYTHONPATH=.`
 - Commits: conventional commits (`feat:`, `fix:`, `docs:`, `test:`)
 
 ## Key Decisions
