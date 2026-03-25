@@ -112,24 +112,6 @@ Plus modifications to the NanoBot framework: `set_user_context()` on the Tool ba
 
 The QA agent reviewed the PR, found zero blocking issues, noted four non-blocking observations for future improvement, and approved.
 
-But here's where things got interesting. When I tried to run the tests, Python exploded:
-
-```
-ModuleNotFoundError: No module named '_sqlite3'
-```
-
-The project's Python (managed by asdf) had been compiled without SQLite support. The headers weren't installed when Python was built. This kicked off a 20-minute adventure involving conda's sqlite headers, Python rebuilds that broke SSL, and the eventual realization that the right answer was to throw away both conda and asdf entirely.
-
-We switched to **uv** -- Astral's blazing-fast Python manager. One command:
-
-```bash
-uv venv --python 3.12 .venv
-```
-
-It downloaded a pre-built Python 3.12 with everything working -- sqlite3, ssl, the works. Installed all dependencies in seconds. No compilation. No header hunting. No conda environments polluting the system.
-
-Sometimes the best engineering decision in a session isn't about the feature you're building. It's about the toolchain under your feet.
-
 PR merged. Wave 1 complete.
 
 ---
