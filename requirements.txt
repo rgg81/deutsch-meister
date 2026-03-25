@@ -3,6 +3,7 @@ anthropic
 python-telegram-bot
 apscheduler
 anyio
+aiosqlite
 pytest
 pytest-asyncio
 faster-whisper
