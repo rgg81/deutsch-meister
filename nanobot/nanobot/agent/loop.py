@@ -113,6 +113,7 @@ class AgentLoop:
         self._consolidation_locks: weakref.WeakValueDictionary[str, asyncio.Lock] = weakref.WeakValueDictionary()
         self._active_tasks: dict[str, list[asyncio.Task]] = {}  # session_key -> tasks
         self._processing_lock = asyncio.Lock()
+        self._lesson_context_provider: Callable[[str], Awaitable[str]] | None = None
         self._register_default_tools()
 
     def _register_default_tools(self) -> None:
@@ -135,6 +136,12 @@ class AgentLoop:
         if self.tts_provider:
             from src.tools.speak import SpeakTool
             self.tools.register(SpeakTool(self.tts_provider))
+
+    def set_lesson_context_provider(
+        self, provider: Callable[[str], Awaitable[str]],
+    ) -> None:
+        """Register a lesson context provider (called before each LLM interaction)."""
+        self._lesson_context_provider = provider
 
     async def _connect_mcp(self) -> None:
         """Connect to configured MCP servers (one-time, lazy)."""
@@ -426,6 +433,15 @@ class AgentLoop:
         if message_tool := self.tools.get("message"):
             if isinstance(message_tool, MessageTool):
                 message_tool.start_turn()
+
+        # Inject lesson context if a provider is registered
+        if self._lesson_context_provider:
+            try:
+                lesson_ctx = await self._lesson_context_provider(msg.sender_id)
+                if lesson_ctx:
+                    self.context.set_runtime_context_extra(lesson_ctx)
+            except Exception:
+                pass  # Graceful degradation — never block the message pipeline
 
         history = session.get_history(max_messages=self.memory_window)
         initial_messages = self.context.build_messages(
