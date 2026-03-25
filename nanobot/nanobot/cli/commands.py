@@ -286,6 +286,24 @@ def _make_tts_provider():
         return None
 
 
+def _make_db():
+    """Create Database instance from config.json if database section exists."""
+    import json
+    from nanobot.config.loader import get_config_path
+
+    config_path = get_config_path()
+    if not config_path.exists():
+        return None
+    try:
+        with open(config_path, encoding="utf-8") as f:
+            raw = json.load(f)
+        from src.db import get_db
+        return get_db(raw)
+    except Exception as e:
+        console.print(f"[yellow]Warning: Database init failed: {e}[/yellow]")
+        return None
+
+
 def _load_runtime_config(config: str | None = None, workspace: str | None = None) -> Config:
     """Load config and optionally override the active workspace."""
     from nanobot.config.loader import load_config, set_config_path
@@ -338,6 +356,7 @@ def gateway(
     bus = MessageBus()
     provider = _make_provider(config)
     tts_provider = _make_tts_provider()
+    db = _make_db()
     session_manager = SessionManager(config.workspace_path)
 
     # Create cron service first (callback set after agent creation)
@@ -365,6 +384,27 @@ def gateway(
         channels_config=config.channels,
         tts_provider=tts_provider,
     )
+
+    # Wire up database, data-layer tools, and context provider
+    async def _wire_db():
+        if db is None:
+            return
+        try:
+            await db.connect()
+            console.print("[green]Database connected[/green]")
+
+            from src.srs.tool import SRSTool
+            from src.progress.tool import ProgressTool
+            from src.profile.tool import ProfileTool
+            agent.tools.register(SRSTool(db))
+            agent.tools.register(ProgressTool(db))
+            agent.tools.register(ProfileTool(db))
+
+            from src.context.builder import make_lesson_context_provider
+            agent.set_lesson_context_provider(make_lesson_context_provider(db))
+            console.print("[green]Learning tools registered (srs, progress, profile, context)[/green]")
+        except Exception as e:
+            console.print(f"[yellow]Warning: Database/tools setup failed: {e}[/yellow]")
 
     # Set cron callback (needs agent)
     async def on_cron_job(job: CronJob) -> str | None:
@@ -486,6 +526,7 @@ def gateway(
 
     async def run():
         try:
+            await _wire_db()
             await cron.start()
             await heartbeat.start()
             await asyncio.gather(
@@ -500,6 +541,8 @@ def gateway(
             cron.stop()
             agent.stop()
             await channels.stop_all()
+            if db:
+                await db.close()
 
     asyncio.run(run())
 
@@ -534,6 +577,7 @@ def agent(
     bus = MessageBus()
     provider = _make_provider(config)
     tts_provider = _make_tts_provider()
+    db = _make_db()
 
     # Create cron service for tool usage (no callback needed for CLI unless running)
     cron_store_path = get_cron_dir() / "jobs.json"
@@ -580,13 +624,32 @@ def agent(
             return
         console.print(f"  [dim]↳ {content}[/dim]")
 
+    async def _wire_cli_db():
+        if db is None:
+            return
+        try:
+            await db.connect()
+            from src.srs.tool import SRSTool
+            from src.progress.tool import ProgressTool
+            from src.profile.tool import ProfileTool
+            agent_loop.tools.register(SRSTool(db))
+            agent_loop.tools.register(ProgressTool(db))
+            agent_loop.tools.register(ProfileTool(db))
+            from src.context.builder import make_lesson_context_provider
+            agent_loop.set_lesson_context_provider(make_lesson_context_provider(db))
+        except Exception as e:
+            console.print(f"[yellow]Warning: Database/tools setup failed: {e}[/yellow]")
+
     if message:
         # Single message mode — direct call, no bus needed
         async def run_once():
+            await _wire_cli_db()
             with _thinking_ctx():
                 response = await agent_loop.process_direct(message, session_id, on_progress=_cli_progress)
             _print_agent_response(response, render_markdown=markdown)
             await agent_loop.close_mcp()
+            if db:
+                await db.close()
 
         asyncio.run(run_once())
     else:
@@ -617,6 +680,7 @@ def agent(
             signal.signal(signal.SIGPIPE, signal.SIG_IGN)
 
         async def run_interactive():
+            await _wire_cli_db()
             bus_task = asyncio.create_task(agent_loop.run())
             turn_done = asyncio.Event()
             turn_done.set()
@@ -691,6 +755,8 @@ def agent(
                 outbound_task.cancel()
                 await asyncio.gather(bus_task, outbound_task, return_exceptions=True)
                 await agent_loop.close_mcp()
+                if db:
+                    await db.close()
 
         asyncio.run(run_interactive())
 
