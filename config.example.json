@@ -38,6 +38,9 @@
       "model": "base"
     }
   },
+  "database": {
+    "path": "./workspace/deutschmeister.db"
+  },
   "tts": {
     "provider": "edge_with_fallback",
     "voice": "de-DE-ConradNeural",

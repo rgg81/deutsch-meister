@@ -418,6 +418,11 @@ class AgentLoop:
             self._consolidation_tasks.add(_task)
 
         self._set_tool_context(msg.channel, msg.chat_id, msg.metadata.get("message_id"))
+
+        # Propagate sender_id to data-layer tools
+        for tool in self.tools.all_tools():
+            tool.set_user_context(msg.sender_id)
+
         if message_tool := self.tools.get("message"):
             if isinstance(message_tool, MessageTool):
                 message_tool.start_turn()

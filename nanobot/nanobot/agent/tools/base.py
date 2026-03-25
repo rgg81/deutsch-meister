@@ -52,6 +52,10 @@ class Tool(ABC):
         """
         pass
 
+    def set_user_context(self, sender_id: str) -> None:
+        """Set the current user context. Override in tools that need per-user scoping."""
+        pass
+
     def cast_params(self, params: dict[str, Any]) -> dict[str, Any]:
         """Apply safe schema-driven casts before validation."""
         schema = self.parameters or {}

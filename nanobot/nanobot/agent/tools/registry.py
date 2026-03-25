@@ -63,6 +63,10 @@ class ToolRegistry:
         """Get list of registered tool names."""
         return list(self._tools.keys())
 
+    def all_tools(self) -> list[Tool]:
+        """Return all registered tools."""
+        return list(self._tools.values())
+
     def __len__(self) -> int:
         return len(self._tools)
 
